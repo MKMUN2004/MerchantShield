@@ -1,6 +1,10 @@
 
 # Enhanced Merchant Verification System (EMVS)
 
+Problem: Major Banking and Transactional companies like Visa, has been linked to processing payments for illegal gambling websites, leading to significant financial losses for consumers and reputational risks for the company.
+
+Project Idea: Developed an advanced merchant verification system that utilizes machine learning to analyze and detect potentially fraudulent or unlicensed merchants before they can process transactions through Visa's network.
+
 A Django-based merchant verification system that uses machine learning for risk assessment and transaction pattern analysis.
 
 ## Features
