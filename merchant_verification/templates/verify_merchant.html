@@ -1,0 +1,645 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Verify Merchant: {{ merchant.name }}</h1>
+        <a href="{% url 'merchant_detail' merchant_id=merchant.id %}" class="d-none d-sm-inline-block btn btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50 me-1"></i> Back to Merchant
+        </a>
+    </div>
+
+    <!-- Alert for current status -->
+    <div class="alert {% if merchant.status == 'verified' %}alert-success{% elif merchant.status == 'flagged' %}alert-warning{% elif merchant.status == 'rejected' %}alert-danger{% else %}alert-info{% endif %} mb-4">
+        <strong>Current Status:</strong> {{ merchant.get_status_display }}
+        {% if merchant.last_verified_at %}
+        <span class="ms-2">Last verified on {{ merchant.last_verified_at|date:"F d, Y" }} by {{ merchant.verified_by.username }}</span>
+        {% endif %}
+    </div>
+
+    <!-- Verification Data Row -->
+    <div class="row">
+        <!-- Risk Assessment Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">ML Risk Assessment</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                            <div class="dropdown-header">Actions:</div>
+                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#riskDetailsModal">View Details</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center mb-3">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                Risk Score</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ risk_data.risk_score|floatformat:2 }} / 5.0</div>
+                        </div>
+                        <div class="col-auto">
+                            {% if risk_data.risk_level == 'extreme' %}
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                            {% elif risk_data.risk_level == 'high' %}
+                            <i class="fas fa-exclamation-circle fa-2x text-warning"></i>
+                            {% elif risk_data.risk_level == 'medium' %}
+                            <i class="fas fa-exclamation fa-2x text-primary"></i>
+                            {% else %}
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="text-xs font-weight-bold text-uppercase mb-1">Suggested Risk Level</p>
+                        <div class="mb-1">
+                            {% if risk_data.suggested_risk_level == 'extreme' %}
+                            <span class="badge bg-danger">Extreme Risk</span>
+                            {% elif risk_data.suggested_risk_level == 'high' %}
+                            <span class="badge bg-warning">High Risk</span>
+                            {% elif risk_data.suggested_risk_level == 'medium' %}
+                            <span class="badge bg-primary">Medium Risk</span>
+                            {% else %}
+                            <span class="badge bg-success">Low Risk</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="text-xs font-weight-bold text-uppercase mb-1">Risk Factors</p>
+                        <div class="progress-group mb-3">
+                            <span class="progress-text">Business Type</span>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar {% if risk_data.risk_factors.business_type_risk >= 4 %}bg-danger{% elif risk_data.risk_factors.business_type_risk >= 3 %}bg-warning{% elif risk_data.risk_factors.business_type_risk >= 2 %}bg-primary{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ risk_data.risk_factors.business_type_risk|floatformat:1|mul:20 }}%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-group mb-3">
+                            <span class="progress-text">Country</span>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar {% if risk_data.risk_factors.country_risk >= 4 %}bg-danger{% elif risk_data.risk_factors.country_risk >= 3 %}bg-warning{% elif risk_data.risk_factors.country_risk >= 2 %}bg-primary{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ risk_data.risk_factors.country_risk|floatformat:1|mul:20 }}%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-group mb-3">
+                            <span class="progress-text">Website</span>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar {% if risk_data.risk_factors.website_risk >= 4 %}bg-danger{% elif risk_data.risk_factors.website_risk >= 3 %}bg-warning{% elif risk_data.risk_factors.website_risk >= 2 %}bg-primary{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ risk_data.risk_factors.website_risk|floatformat:1|mul:20 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if risk_data.high_risk_flags %}
+                    <div class="mt-3">
+                        <p class="text-xs font-weight-bold text-uppercase mb-1 text-danger">High Risk Flags</p>
+                        <ul class="text-sm mb-0">
+                            {% for flag in risk_data.high_risk_flags %}
+                            <li>{{ flag }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- External Verification Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">External Verification</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                            <div class="dropdown-header">Actions:</div>
+                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#externalDataModal">View Raw Response</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center mb-3">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                Verification Status</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% if external_data.verification_status == 'verified' %}
+                                <span class="text-success">Verified</span>
+                                {% elif external_data.verification_status == 'suspicious' %}
+                                <span class="text-warning">Suspicious</span>
+                                {% elif external_data.verification_status == 'unverified' %}
+                                <span class="text-danger">Unverified</span>
+                                {% elif external_data.verification_status == 'incomplete' %}
+                                <span class="text-muted">Incomplete</span>
+                                {% else %}
+                                <span class="text-danger">Error</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            {% if external_data.verification_status == 'verified' %}
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                            {% elif external_data.verification_status == 'suspicious' %}
+                            <i class="fas fa-question-circle fa-2x text-warning"></i>
+                            {% elif external_data.verification_status == 'unverified' %}
+                            <i class="fas fa-times-circle fa-2x text-danger"></i>
+                            {% elif external_data.verification_status == 'incomplete' %}
+                            <i class="fas fa-exclamation-circle fa-2x text-muted"></i>
+                            {% else %}
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="text-xs font-weight-bold text-uppercase mb-1">Confidence Score</p>
+                        <div class="progress mb-1" style="height: 15px;">
+                            <div class="progress-bar 
+                                {% if external_data.confidence_score >= 0.7 %}bg-success
+                                {% elif external_data.confidence_score >= 0.5 %}bg-primary
+                                {% elif external_data.confidence_score >= 0.3 %}bg-warning
+                                {% else %}bg-danger{% endif %}" 
+                                role="progressbar" 
+                                style="width: {{ external_data.confidence_score|floatformat:2|mul:100 }}%" 
+                                aria-valuenow="{{ external_data.confidence_score|floatformat:2|mul:100 }}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100">
+                                {{ external_data.confidence_score|floatformat:2 }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if external_data.registry_information %}
+                    <div class="mb-3">
+                        <p class="text-xs font-weight-bold text-uppercase mb-1">Registry Information</p>
+                        <p class="mb-0 small">{{ external_data.registry_information.registry_name }}</p>
+                        <p class="mb-0 small">Registration Date: {{ external_data.registry_information.registration_date }}</p>
+                        <p class="mb-0 small">Status: {{ external_data.registry_information.status }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if external_data.license_information %}
+                    <div class="mb-3">
+                        <p class="text-xs font-weight-bold text-uppercase mb-1">License Information</p>
+                        <p class="mb-0 small">License: {{ external_data.license_information.license_number }}</p>
+                        <p class="mb-0 small">Issuer: {{ external_data.license_information.issuing_authority }}</p>
+                        <p class="mb-0 small">Valid until: {{ external_data.license_information.valid_until }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if external_data.risk_indicators %}
+                    <div class="mt-3">
+                        <p class="text-xs font-weight-bold text-uppercase mb-1 text-warning">Risk Indicators</p>
+                        <ul class="text-sm mb-0">
+                            {% for indicator in external_data.risk_indicators %}
+                            <li>{{ indicator }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction Analysis Card -->
+        <div class="col-xl-4 col-md-12 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Transaction Analysis</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                            <div class="dropdown-header">Actions:</div>
+                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#transactionDataModal">View Details</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if transaction_data %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <th>Average Transaction</th>
+                                    <td>{{ transaction_data.average_transaction_amount|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Monthly Volume</th>
+                                    <td>{{ transaction_data.monthly_transaction_volume }}</td>
+                                </tr>
+                                <tr>
+                                    <th>High-Risk Countries</th>
+                                    <td>
+                                        {% if transaction_data.high_risk_countries_percentage > 25 %}
+                                        <span class="text-danger">{{ transaction_data.high_risk_countries_percentage|floatformat:1 }}%</span>
+                                        {% elif transaction_data.high_risk_countries_percentage > 10 %}
+                                        <span class="text-warning">{{ transaction_data.high_risk_countries_percentage|floatformat:1 }}%</span>
+                                        {% else %}
+                                        <span>{{ transaction_data.high_risk_countries_percentage|floatformat:1 }}%</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Unusual Hours</th>
+                                    <td>
+                                        {% if transaction_data.unusual_hours_percentage > 30 %}
+                                        <span class="text-danger">{{ transaction_data.unusual_hours_percentage|floatformat:1 }}%</span>
+                                        {% elif transaction_data.unusual_hours_percentage > 15 %}
+                                        <span class="text-warning">{{ transaction_data.unusual_hours_percentage|floatformat:1 }}%</span>
+                                        {% else %}
+                                        <span>{{ transaction_data.unusual_hours_percentage|floatformat:1 }}%</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Similar Transactions</th>
+                                    <td>
+                                        {% if transaction_data.similar_transactions_percentage > 70 %}
+                                        <span class="text-danger">{{ transaction_data.similar_transactions_percentage|floatformat:1 }}%</span>
+                                        {% elif transaction_data.similar_transactions_percentage > 50 %}
+                                        <span class="text-warning">{{ transaction_data.similar_transactions_percentage|floatformat:1 }}%</span>
+                                        {% else %}
+                                        <span>{{ transaction_data.similar_transactions_percentage|floatformat:1 }}%</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Chargeback Rate</th>
+                                    <td>
+                                        {% if transaction_data.chargeback_rate > 2 %}
+                                        <span class="text-danger">{{ transaction_data.chargeback_rate|floatformat:2 }}%</span>
+                                        {% elif transaction_data.chargeback_rate > 1 %}
+                                        <span class="text-warning">{{ transaction_data.chargeback_rate|floatformat:2 }}%</span>
+                                        {% else %}
+                                        <span>{{ transaction_data.chargeback_rate|floatformat:2 }}%</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center my-3">
+                        <canvas id="transactionChart" height="150"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No transaction data is currently available for this merchant.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verification Form Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Verification Decision</h6>
+        </div>
+        <div class="card-body">
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+                
+                <div class="col-md-6">
+                    <label for="id_status" class="form-label">Status Decision</label>
+                    {{ form.status }}
+                    <div class="form-text">Set the verification status for this merchant.</div>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="id_risk_level" class="form-label">Risk Level</label>
+                    {{ form.risk_level }}
+                    <div class="form-text">Assign a risk level based on the assessment.</div>
+                </div>
+                
+                <div class="col-12">
+                    <label for="id_verification_data" class="form-label">Verification Notes</label>
+                    {{ form.verification_data }}
+                    <div class="form-text">Add any additional notes or observations about the verification.</div>
+                </div>
+                
+                <div class="col-12 mt-4">
+                    <p>
+                        <strong>Recommendations:</strong>
+                    </p>
+                    <ul>
+                        {% for rec in risk_data.recommendations %}
+                        <li>{{ rec }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <!-- Form Errors -->
+                {% if form.errors %}
+                <div class="col-12">
+                    <div class="alert alert-danger">
+                        <strong>Please correct the following errors:</strong>
+                        <ul>
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="col-12 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check-circle fa-sm me-1"></i> Complete Verification
+                    </button>
+                    <a href="{% url 'merchant_detail' merchant_id=merchant.id %}" class="btn btn-secondary">
+                        <i class="fas fa-times fa-sm me-1"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Risk Details Modal -->
+<div class="modal fade" id="riskDetailsModal" tabindex="-1" aria-labelledby="riskDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="riskDetailsModalLabel">Risk Assessment Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert {% if risk_data.risk_level == 'extreme' %}alert-danger{% elif risk_data.risk_level == 'high' %}alert-warning{% elif risk_data.risk_level == 'medium' %}alert-primary{% else %}alert-success{% endif %}">
+                    <strong>Risk Score:</strong> {{ risk_data.risk_score|floatformat:2 }} / 5.0
+                    <br>
+                    <strong>Risk Level:</strong> {{ risk_data.risk_level|title }}
+                </div>
+                
+                <h6 class="font-weight-bold">Risk Factors</h6>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Factor</th>
+                                <th>Score</th>
+                                <th>Level</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for factor, score in risk_data.risk_factors.items %}
+                            <tr>
+                                <td>{{ factor|title|replace:"_":" " }}</td>
+                                <td>{{ score|floatformat:2 }}</td>
+                                <td>
+                                    {% if score >= 4 %}
+                                    <span class="badge bg-danger">High</span>
+                                    {% elif score >= 3 %}
+                                    <span class="badge bg-warning">Medium</span>
+                                    {% elif score >= 2 %}
+                                    <span class="badge bg-primary">Low</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Minimal</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if risk_data.high_risk_flags %}
+                <h6 class="font-weight-bold mt-4">High Risk Flags</h6>
+                <ul>
+                    {% for flag in risk_data.high_risk_flags %}
+                    <li>{{ flag }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                
+                <h6 class="font-weight-bold mt-4">Recommendations</h6>
+                <ul>
+                    {% for rec in risk_data.recommendations %}
+                    <li>{{ rec }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- External Data Modal -->
+<div class="modal fade" id="externalDataModal" tabindex="-1" aria-labelledby="externalDataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="externalDataModalLabel">External API Response</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <pre class="border bg-light p-3" style="max-height: 400px; overflow-y: auto;">{{ external_data|pprint }}</pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction Data Modal -->
+<div class="modal fade" id="transactionDataModal" tabindex="-1" aria-labelledby="transactionDataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transactionDataModalLabel">Transaction Data Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if transaction_data %}
+                <h6 class="font-weight-bold">Transaction Summary</h6>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <th>Average Transaction Amount</th>
+                                <td>{{ transaction_data.average_transaction_amount|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <th>Monthly Transaction Volume</th>
+                                <td>{{ transaction_data.monthly_transaction_volume }}</td>
+                            </tr>
+                            <tr>
+                                <th>High-Risk Countries Percentage</th>
+                                <td>{{ transaction_data.high_risk_countries_percentage|floatformat:1 }}%</td>
+                            </tr>
+                            <tr>
+                                <th>Unusual Hours Percentage</th>
+                                <td>{{ transaction_data.unusual_hours_percentage|floatformat:1 }}%</td>
+                            </tr>
+                            <tr>
+                                <th>Similar Transactions Percentage</th>
+                                <td>{{ transaction_data.similar_transactions_percentage|floatformat:1 }}%</td>
+                            </tr>
+                            <tr>
+                                <th>Chargeback Rate</th>
+                                <td>{{ transaction_data.chargeback_rate|floatformat:2 }}%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <h6 class="font-weight-bold mt-4">Country Distribution</h6>
+                <canvas id="countryDistributionChart" height="200"></canvas>
+                
+                <h6 class="font-weight-bold mt-4">Hourly Distribution</h6>
+                <canvas id="hourlyDistributionChart" height="200"></canvas>
+                
+                <h6 class="font-weight-bold mt-4">Raw Transaction Data</h6>
+                <pre class="border bg-light p-3" style="max-height: 200px; overflow-y: auto;">{{ transaction_data.detailed_data|pprint }}</pre>
+                {% else %}
+                <div class="alert alert-info">
+                    No transaction data is currently available for this merchant.
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    {% if transaction_data and transaction_data.detailed_data %}
+    
+    // Set up the transaction chart
+    const transactionCtx = document.getElementById('transactionChart').getContext('2d');
+    
+    // Transaction data
+    const countryLabels = [];
+    const countryData = [];
+    
+    {% if transaction_data.detailed_data.country_distribution %}
+    const countryDistribution = {{ transaction_data.detailed_data.country_distribution|safe }};
+    for (const country in countryDistribution) {
+        countryLabels.push(country);
+        countryData.push(countryDistribution[country]);
+    }
+    {% endif %}
+    
+    // Create a doughnut chart for transaction countries
+    const transactionChart = new Chart(transactionCtx, {
+        type: 'doughnut',
+        data: {
+            labels: countryLabels,
+            datasets: [{
+                data: countryData,
+                backgroundColor: [
+                    '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                    '#6f42c1', '#20c9a6', '#5a5c69', '#858796', '#dddfeb'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Country distribution in modal
+    const countryDistCtx = document.getElementById('countryDistributionChart').getContext('2d');
+    const countryDistChart = new Chart(countryDistCtx, {
+        type: 'bar',
+        data: {
+            labels: countryLabels,
+            datasets: [{
+                label: 'Transactions',
+                data: countryData,
+                backgroundColor: '#4e73df'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Hourly distribution in modal
+    const hourlyLabels = [];
+    const hourlyData = [];
+    
+    {% if transaction_data.detailed_data.hourly_distribution %}
+    const hourlyDistribution = {{ transaction_data.detailed_data.hourly_distribution|safe }};
+    
+    // Sort hours numerically
+    const sortedHours = Object.keys(hourlyDistribution).map(Number).sort((a, b) => a - b);
+    
+    for (const hour of sortedHours) {
+        const formattedHour = hour < 10 ? `0${hour}:00` : `${hour}:00`;
+        hourlyLabels.push(formattedHour);
+        hourlyData.push(hourlyDistribution[hour]);
+    }
+    {% endif %}
+    
+    const hourlyDistCtx = document.getElementById('hourlyDistributionChart').getContext('2d');
+    const hourlyDistChart = new Chart(hourlyDistCtx, {
+        type: 'line',
+        data: {
+            labels: hourlyLabels,
+            datasets: [{
+                label: 'Transactions by Hour',
+                data: hourlyData,
+                borderColor: '#4e73df',
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    {% endif %}
+});
+</script>
+{% endblock %}

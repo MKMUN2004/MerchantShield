@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Merchant List</h1>
+        <a href="{% url 'add_merchant' %}" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50 me-1"></i> Add New Merchant
+        </a>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Filter Merchants</h6>
+            <a class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" href="#filterCollapse" role="button" aria-expanded="true" aria-controls="filterCollapse">
+                <i class="fas fa-filter fa-sm"></i> Toggle Filters
+            </a>
+        </div>
+        <div class="collapse show" id="filterCollapse">
+            <div class="card-body">
+                <form method="get" action="{% url 'merchant_list' %}" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="id_name" class="form-label">Merchant Name</label>
+                        {{ filter_form.name }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_business_type" class="form-label">Business Type</label>
+                        {{ filter_form.business_type }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_status" class="form-label">Status</label>
+                        {{ filter_form.status }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_risk_level" class="form-label">Risk Level</label>
+                        {{ filter_form.risk_level }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_country" class="form-label">Country</label>
+                        {{ filter_form.country }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_date_from" class="form-label">Registration Date From</label>
+                        {{ filter_form.date_from }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_date_to" class="form-label">Registration Date To</label>
+                        {{ filter_form.date_to }}
+                    </div>
+                    <div class="col-12 mt-3 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search fa-sm"></i> Apply Filters
+                        </button>
+                        <a href="{% url 'merchant_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-undo fa-sm"></i> Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merchants List Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% if query %}
+                Search Results for "{{ query }}"
+                {% else %}
+                All Merchants
+                {% endif %}
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="merchantsTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Business Type</th>
+                            <th>Registration Number</th>
+                            <th>Country</th>
+                            <th>Status</th>
+                            <th>Risk Level</th>
+                            <th>Added Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for merchant in page_obj %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'merchant_detail' merchant_id=merchant.id %}">
+                                    {{ merchant.name }}
+                                </a>
+                            </td>
+                            <td>{{ merchant.get_business_type_display }}</td>
+                            <td>{{ merchant.registration_number }}</td>
+                            <td>{{ merchant.country }}</td>
+                            <td>
+                                {% if merchant.status == 'verified' %}
+                                <span class="badge bg-success">Verified</span>
+                                {% elif merchant.status == 'flagged' %}
+                                <span class="badge bg-warning">Flagged</span>
+                                {% elif merchant.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% else %}
+                                <span class="badge bg-info">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if merchant.risk_level == 'extreme' %}
+                                <span class="badge bg-danger">Extreme</span>
+                                {% elif merchant.risk_level == 'high' %}
+                                <span class="badge bg-warning">High</span>
+                                {% elif merchant.risk_level == 'medium' %}
+                                <span class="badge bg-primary">Medium</span>
+                                {% elif merchant.risk_level == 'low' %}
+                                <span class="badge bg-success">Low</span>
+                                {% else %}
+                                <span class="text-muted">Not assessed</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ merchant.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ merchant.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ merchant.id }}">
+                                        <li><a class="dropdown-item" href="{% url 'merchant_detail' merchant_id=merchant.id %}"><i class="fas fa-eye fa-sm"></i> View Details</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'edit_merchant' merchant_id=merchant.id %}"><i class="fas fa-edit fa-sm"></i> Edit</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'verify_merchant' merchant_id=merchant.id %}"><i class="fas fa-check-circle fa-sm"></i> Verify</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'flag_merchant' merchant_id=merchant.id %}"><i class="fas fa-flag fa-sm"></i> Flag</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'generate_report' merchant_id=merchant.id %}"><i class="fas fa-file-alt fa-sm"></i> Generate Report</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">No merchants found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination-container d-flex justify-content-center mt-4">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if request.GET %}{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}{% endif %}page=1" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if request.GET %}{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item"><a class="page-link" href="?{% if request.GET %}{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}{% endif %}page={{ num }}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if request.GET %}{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}{% endif %}page={{ page_obj.next_page_number }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if request.GET %}{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}{% endif %}page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize DataTables
+    $('#merchantsTable').DataTable({
+        "paging": false,
+        "info": false
+    });
+});
+</script>
+{% endblock %}

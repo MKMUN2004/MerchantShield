@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+        <a href="{% url 'add_merchant' %}" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50 me-1"></i> Add New Merchant
+        </a>
+    </div>
+
+    <!-- Verification Overview Cards -->
+    <div class="row mb-4">
+        <!-- Total Merchants Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Merchants</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_merchants }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-store fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verified Merchants Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Verified Merchants</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ verified_merchants }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flagged Merchants Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Flagged Merchants</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ flagged_merchants }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-flag fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Merchants Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Pending Verification</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_merchants }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Row -->
+    <div class="row">
+        <!-- Risk Level Distribution Chart -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Risk Level Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie">
+                        <canvas id="riskLevelChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center small">
+                        <span class="mr-2">
+                            <i class="fas fa-circle text-success"></i> Low Risk
+                        </span>
+                        <span class="mr-2">
+                            <i class="fas fa-circle text-warning"></i> Medium Risk
+                        </span>
+                        <span class="mr-2">
+                            <i class="fas fa-circle text-primary"></i> High Risk
+                        </span>
+                        <span class="mr-2">
+                            <i class="fas fa-circle text-danger"></i> Extreme Risk
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Business Type Distribution Chart -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Business Type Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-bar">
+                        <canvas id="businessTypeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Row -->
+    <div class="row">
+        <!-- Recent Merchant Registrations -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Merchant Registrations</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Business Type</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for merchant in recent_merchants %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'merchant_detail' merchant_id=merchant.id %}">
+                                            {{ merchant.name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ merchant.get_business_type_display }}</td>
+                                    <td>
+                                        {% if merchant.status == 'verified' %}
+                                        <span class="badge bg-success">Verified</span>
+                                        {% elif merchant.status == 'flagged' %}
+                                        <span class="badge bg-warning">Flagged</span>
+                                        {% elif merchant.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                        {% else %}
+                                        <span class="badge bg-info">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ merchant.created_at|date:"M d, Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No recent merchant registrations.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Verification Flags -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Verification Flags</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Merchant</th>
+                                    <th>Flag Type</th>
+                                    <th>Severity</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for flag in recent_flags %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'merchant_detail' merchant_id=flag.merchant.id %}">
+                                            {{ flag.merchant.name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ flag.get_flag_type_display }}</td>
+                                    <td>
+                                        {% if flag.severity == 'critical' %}
+                                        <span class="badge bg-danger">Critical</span>
+                                        {% elif flag.severity == 'high' %}
+                                        <span class="badge bg-warning">High</span>
+                                        {% elif flag.severity == 'medium' %}
+                                        <span class="badge bg-info">Medium</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Low</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ flag.created_at|date:"M d, Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No recent verification flags.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Risk Level Distribution Chart
+    const riskLevelLabels = [];
+    const riskLevelCounts = [];
+    {% for risk in risk_levels %}
+        riskLevelLabels.push("{{ risk.risk_level|title }}");
+        riskLevelCounts.push({{ risk.count }});
+    {% endfor %}
+    
+    // Business Type Distribution Chart
+    const businessTypeLabels = [];
+    const businessTypeCounts = [];
+    {% for business_type in business_types %}
+        {% if business_type.business_type == 'retail' %}
+            businessTypeLabels.push("Retail");
+        {% elif business_type.business_type == 'online' %}
+            businessTypeLabels.push("Online/E-commerce");
+        {% elif business_type.business_type == 'service' %}
+            businessTypeLabels.push("Service Provider");
+        {% elif business_type.business_type == 'financial' %}
+            businessTypeLabels.push("Financial Services");
+        {% elif business_type.business_type == 'gambling' %}
+            businessTypeLabels.push("Gambling/Gaming");
+        {% elif business_type.business_type == 'travel' %}
+            businessTypeLabels.push("Travel/Hospitality");
+        {% elif business_type.business_type == 'healthcare' %}
+            businessTypeLabels.push("Healthcare");
+        {% else %}
+            businessTypeLabels.push("Other");
+        {% endif %}
+        businessTypeCounts.push({{ business_type.count }});
+    {% endfor %}
+</script>
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}

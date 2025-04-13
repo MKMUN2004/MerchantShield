@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Flagged Merchants</h1>
+        <a href="{% url 'merchant_list' %}" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+            <i class="fas fa-list fa-sm text-white-50 me-1"></i> All Merchants
+        </a>
+    </div>
+
+    <!-- Alert Card -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="alert alert-warning mb-0">
+                <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i> Merchants Requiring Review</h4>
+                <p>These merchants have been flagged for review due to potential issues. Please investigate each flag and take appropriate action.</p>
+                <hr>
+                <p class="mb-0">
+                    <strong>Actions you can take:</strong> Review merchant details, resolve flags, or reject merchants that do not meet verification standards.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flagged Merchants List Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Open Flags ({{ page_obj.paginator.count }})</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="flaggedMerchantsTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Merchant Name</th>
+                            <th>Flag Type</th>
+                            <th>Severity</th>
+                            <th>Flagged Date</th>
+                            <th>Status</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for flag in page_obj %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'merchant_detail' merchant_id=flag.merchant.id %}">
+                                    {{ flag.merchant.name }}
+                                </a>
+                                <br>
+                                <span class="small text-muted">{{ flag.merchant.get_business_type_display }}</span>
+                            </td>
+                            <td>{{ flag.get_flag_type_display }}</td>
+                            <td>
+                                {% if flag.severity == 'critical' %}
+                                <span class="badge bg-danger">Critical</span>
+                                {% elif flag.severity == 'high' %}
+                                <span class="badge bg-warning">High</span>
+                                {% elif flag.severity == 'medium' %}
+                                <span class="badge bg-info">Medium</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Low</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ flag.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                {% if flag.status == 'open' %}
+                                <span class="badge bg-danger">Open</span>
+                                {% elif flag.status == 'investigating' %}
+                                <span class="badge bg-warning">Investigating</span>
+                                {% endif %}
+                            </td>
+                            <td class="small" style="max-width: 300px; white-space: normal;">{{ flag.description }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'merchant_detail' merchant_id=flag.merchant.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'resolve_flag' flag_id=flag.id %}" class="btn btn-sm btn-success">
+                                        <i class="fas fa-check"></i> Resolve
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No flagged merchants found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination-container d-flex justify-content-center mt-4">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Flag Type Distribution Card -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Flag Type Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie">
+                        <canvas id="flagTypesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Flag Severity Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie">
+                        <canvas id="flagSeverityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize DataTables
+    $('#flaggedMerchantsTable').DataTable({
+        "paging": false,
+        "info": false
+    });
+    
+    // Calculate flag types distribution
+    const flagTypes = {};
+    const flagSeverity = {};
+    
+    {% for flag in page_obj %}
+        // Flag types
+        const flagType = "{{ flag.get_flag_type_display }}";
+        if (flagTypes[flagType]) {
+            flagTypes[flagType]++;
+        } else {
+            flagTypes[flagType] = 1;
+        }
+        
+        // Flag severity
+        const severity = "{{ flag.get_severity_display }}";
+        if (flagSeverity[severity]) {
+            flagSeverity[severity]++;
+        } else {
+            flagSeverity[severity] = 1;
+        }
+    {% endfor %}
+    
+    // Create flag types chart
+    const flagTypesCtx = document.getElementById('flagTypesChart').getContext('2d');
+    const flagTypesChart = new Chart(flagTypesCtx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(flagTypes),
+            datasets: [{
+                data: Object.values(flagTypes),
+                backgroundColor: [
+                    '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                    '#6f42c1', '#20c9a6', '#5a5c69'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Create flag severity chart
+    const flagSeverityCtx = document.getElementById('flagSeverityChart').getContext('2d');
+    const flagSeverityChart = new Chart(flagSeverityCtx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(flagSeverity),
+            datasets: [{
+                data: Object.values(flagSeverity),
+                backgroundColor: [
+                    '#e74a3b', // Critical - Red
+                    '#f6c23e', // High - Yellow
+                    '#4e73df', // Medium - Blue
+                    '#858796'  // Low - Gray
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

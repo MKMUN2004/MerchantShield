@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        {% if merchant %}
+            {% if flag_form %}
+            <h1 class="h3 mb-0 text-gray-800">Flag Merchant: {{ merchant.name }}</h1>
+            {% elif resolve_form %}
+            <h1 class="h3 mb-0 text-gray-800">Resolve Flag: {{ flag.get_flag_type_display }}</h1>
+            {% elif report_form %}
+            <h1 class="h3 mb-0 text-gray-800">Generate Report: {{ merchant.name }}</h1>
+            {% else %}
+            <h1 class="h3 mb-0 text-gray-800">Edit Merchant: {{ merchant.name }}</h1>
+            {% endif %}
+        {% else %}
+        <h1 class="h3 mb-0 text-gray-800">Add New Merchant</h1>
+        {% endif %}
+        <a href="{% if merchant %}{% url 'merchant_detail' merchant_id=merchant.id %}{% else %}{% url 'merchant_list' %}{% endif %}" class="d-none d-sm-inline-block btn btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50 me-1"></i> Back
+        </a>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% if merchant %}
+                    {% if flag_form %}
+                    Flag Information
+                    {% elif resolve_form %}
+                    Flag Resolution
+                    {% elif report_form %}
+                    Report Details
+                    {% else %}
+                    Merchant Information
+                    {% endif %}
+                {% else %}
+                Merchant Information
+                {% endif %}
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+
+                {% if flag_form %}
+                <!-- Flag Form -->
+                <div class="col-md-6">
+                    <label for="id_flag_type" class="form-label">Flag Type</label>
+                    {{ form.flag_type }}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_severity" class="form-label">Severity</label>
+                    {{ form.severity }}
+                </div>
+                <div class="col-12">
+                    <label for="id_description" class="form-label">Description</label>
+                    {{ form.description }}
+                </div>
+
+                {% elif resolve_form %}
+                <!-- Resolve Flag Form -->
+                <div class="col-md-12">
+                    <div class="alert alert-warning">
+                        <strong>Flag Type:</strong> {{ flag.get_flag_type_display }}<br>
+                        <strong>Description:</strong> {{ flag.description }}<br>
+                        <strong>Severity:</strong> {{ flag.get_severity_display }}<br>
+                        <strong>Created By:</strong> {{ flag.created_by.username }} on {{ flag.created_at|date:"F d, Y" }}
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <label for="id_status" class="form-label">Resolution Status</label>
+                    {{ form.status }}
+                </div>
+                <div class="col-12">
+                    <label for="id_resolution_notes" class="form-label">Resolution Notes</label>
+                    {{ form.resolution_notes }}
+                </div>
+
+                {% elif report_form %}
+                <!-- Report Form -->
+                <div class="col-md-12">
+                    <div class="alert alert-info">
+                        <strong>Merchant:</strong> {{ merchant.name }}<br>
+                        <strong>Business Type:</strong> {{ merchant.get_business_type_display }}<br>
+                        <strong>Status:</strong> {{ merchant.get_status_display }}<br>
+                        <strong>Risk Level:</strong> {% if merchant.risk_level %}{{ merchant.get_risk_level_display }}{% else %}Not assessed{% endif %}
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label for="id_risk_assessment" class="form-label">Risk Assessment</label>
+                    {{ form.risk_assessment }}
+                </div>
+                <div class="col-12">
+                    <label for="id_recommendations" class="form-label">Recommendations</label>
+                    {{ form.recommendations }}
+                </div>
+
+                {% else %}
+                <!-- Merchant Form -->
+                <div class="col-md-6">
+                    <label for="id_name" class="form-label">Business Name</label>
+                    {{ form.name }}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_business_type" class="form-label">Business Type</label>
+                    {{ form.business_type }}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_registration_number" class="form-label">Registration Number</label>
+                    {{ form.registration_number }}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_tax_id" class="form-label">Tax ID (Optional)</label>
+                    {{ form.tax_id }}
+                </div>
+                <div class="col-md-12">
+                    <label for="id_website" class="form-label">Website (Optional)</label>
+                    {{ form.website }}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_email" class="form-label">Email</label>
+                    {{ form.email }}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_phone" class="form-label">Phone</label>
+                    {{ form.phone }}
+                </div>
+                <div class="col-md-12">
+                    <label for="id_address" class="form-label">Address</label>
+                    {{ form.address }}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_city" class="form-label">City</label>
+                    {{ form.city }}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_state" class="form-label">State/Province</label>
+                    {{ form.state }}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_postal_code" class="form-label">Postal Code</label>
+                    {{ form.postal_code }}
+                </div>
+                <div class="col-md-12">
+                    <label for="id_country" class="form-label">Country</label>
+                    {{ form.country }}
+                </div>
+                {% endif %}
+
+                <!-- Form Errors -->
+                {% if form.errors %}
+                <div class="col-12">
+                    <div class="alert alert-danger">
+                        <strong>Please correct the following errors:</strong>
+                        <ul>
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Submit Buttons -->
+                <div class="col-12 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        {% if merchant %}
+                            {% if flag_form %}
+                            <i class="fas fa-flag fa-sm me-1"></i> Flag Merchant
+                            {% elif resolve_form %}
+                            <i class="fas fa-check fa-sm me-1"></i> Resolve Flag
+                            {% elif report_form %}
+                            <i class="fas fa-file-alt fa-sm me-1"></i> Generate Report
+                            {% else %}
+                            <i class="fas fa-save fa-sm me-1"></i> Update Merchant
+                            {% endif %}
+                        {% else %}
+                        <i class="fas fa-plus fa-sm me-1"></i> Add Merchant
+                        {% endif %}
+                    </button>
+                    <a href="{% if merchant %}{% url 'merchant_detail' merchant_id=merchant.id %}{% else %}{% url 'merchant_list' %}{% endif %}" class="btn btn-secondary">
+                        <i class="fas fa-times fa-sm me-1"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
